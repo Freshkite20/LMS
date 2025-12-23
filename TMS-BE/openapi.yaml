@@ -1,0 +1,1509 @@
+openapi: 3.0.0
+info:
+  title: TMS API
+  version: 1.0.0
+  description: Training Management System API for managing courses, students, batches, tests, and progress tracking
+  contact:
+    name: TMS API Support
+    email: support@tms.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.tms.com/api/v1
+    description: Production server
+
+tags:
+  - name: Auth
+    description: Authentication endpoints (Login/Refresh)
+  - name: Admin
+    description: Admin dashboard and management
+  - name: Batches
+    description: Batch management operations
+  - name: Courses
+    description: Course creation and management
+  - name: Students
+    description: Student enrollment and management
+  - name: Tests
+    description: Test creation and submission
+  - name: Progress
+    description: Student progress tracking
+  - name: Files
+    description: File upload and processing status
+
+paths:
+  /auth/signup:
+    post:
+      summary: Register a new user
+      description: Register a new student account
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - firstName
+                - lastName
+                - email
+                - password
+              properties:
+                firstName:
+                  type: string
+                  example: John
+                lastName:
+                  type: string
+                  example: Doe
+                email:
+                  type: string
+                  format: email
+                  example: student@example.com
+                password:
+                  type: string
+                  format: password
+                  example: Password123!
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          userId:
+                            type: string
+                            format: uuid
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: DUPLICATE_ENTRY
+                  message: User already exists
+                timestamp: '2024-12-04T14:30:00Z'
+  /auth/login:
+    post:
+      summary: Login to get access token
+      description: Authenticate user using username and password (proxies to Keycloak)
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: user
+                password:
+                  type: string
+                  example: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          access_token:
+                            type: string
+                          refresh_token:
+                            type: string
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Get a new access token using a refresh token
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: The refresh token obtained during login
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          access_token:
+                            type: string
+                          refresh_token:
+                            type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Check if the API is running
+      tags:
+        - Health
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/dashboard:
+    get:
+      summary: Get admin dashboard data
+      description: Retrieve dashboard statistics and overview for administrators
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /batches:
+    post:
+      summary: Create a new batch
+      description: Create a new training batch (Admin only)
+      tags:
+        - Batches
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBatchRequest'
+      responses:
+        '200':
+          description: Batch created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Batch'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+    get:
+      summary: Get all batches
+      description: Retrieve a list of all batches with optional filtering and pagination
+      tags:
+        - Batches
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by batch status
+          schema:
+            type: string
+            enum: [active, archived]
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: Batches retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          batches:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Batch'
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /batches/{batchId}/students:
+    post:
+      summary: Assign students to a batch
+      description: Assign multiple students to a specific batch (Admin only)
+      tags:
+        - Batches
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BatchIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studentIds
+              properties:
+                studentIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  minItems: 1
+      responses:
+        '200':
+          description: Students assigned successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          assignedCount:
+                            type: integer
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /batches/{batchId}/progress:
+    get:
+      summary: Get batch progress
+      description: Retrieve progress statistics for all students in a batch
+      tags:
+        - Batches
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BatchIdParam'
+      responses:
+        '200':
+          description: Batch progress retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /courses:
+    post:
+      summary: Create a new course
+      description: Create a new training course (Admin only)
+      tags:
+        - Courses
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCourseRequest'
+      responses:
+        '200':
+          description: Course created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Course'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /courses/{courseId}:
+    get:
+      summary: Get course by ID
+      description: Retrieve a specific course with optional sections
+      tags:
+        - Courses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+        - name: includeSections
+          in: query
+          description: Include course sections in response
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Course retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Course'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /courses/{courseId}/sections:
+    post:
+      summary: Add section to course
+      description: Add a new section to an existing course (Admin only)
+      tags:
+        - Courses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCourseSectionRequest'
+      responses:
+        '200':
+          description: Section added successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CourseSection'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /courses/{courseId}/upload-content:
+    post:
+      summary: Upload course content
+      description: Upload content file for a course (Admin only)
+      tags:
+        - Courses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Content uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /courses/{courseId}/publish:
+    put:
+      summary: Publish a course
+      description: Change course status to published (Admin only)
+      tags:
+        - Courses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      responses:
+        '200':
+          description: Course published successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /courses/{courseId}/assign:
+    post:
+      summary: Assign course to students or batches
+      description: Assign a course to individual students or entire batches (Admin only)
+      tags:
+        - Courses
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CourseIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignCourseRequest'
+      responses:
+        '200':
+          description: Course assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /students/enroll:
+    post:
+      summary: Enroll a new student
+      description: Create a new student and enroll them in a batch (Admin only)
+      tags:
+        - Students
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollStudentRequest'
+      responses:
+        '200':
+          description: Student enrolled successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /students/{studentId}:
+    get:
+      summary: Get student by ID
+      description: Retrieve student information
+      tags:
+        - Students
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudentIdParam'
+      responses:
+        '200':
+          description: Student retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /students/{studentId}/courses:
+    get:
+      summary: Get student's courses
+      description: Retrieve all courses assigned to a student
+      tags:
+        - Students
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudentIdParam'
+      responses:
+        '200':
+          description: Student courses retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Course'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /tests:
+    post:
+      summary: Create a new test
+      description: Create a new test for a course (Admin only)
+      tags:
+        - Tests
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTestRequest'
+      responses:
+        '200':
+          description: Test created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Test'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /tests/{testId}:
+    get:
+      summary: Get test by ID
+      description: Retrieve a specific test with optional questions
+      tags:
+        - Tests
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestIdParam'
+        - name: includeQuestions
+          in: query
+          description: Include test questions in response
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Test retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Test'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /tests/{testId}/upload-questions:
+    post:
+      summary: Upload test questions
+      description: Upload questions for a test from a file (Admin only)
+      tags:
+        - Tests
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestIdParam'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Questions uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /tests/{testId}/submit:
+    post:
+      summary: Submit test answers
+      description: Submit answers for a test
+      tags:
+        - Tests
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitTestRequest'
+      responses:
+        '200':
+          description: Test submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /tests/{testId}/submissions/{submissionId}:
+    get:
+      summary: Get test submission
+      description: Retrieve a specific test submission with results
+      tags:
+        - Tests
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestIdParam'
+        - $ref: '#/components/parameters/SubmissionIdParam'
+      responses:
+        '200':
+          description: Submission retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /progress/sections/{sectionId}/complete:
+    post:
+      summary: Mark section as complete
+      description: Mark a course section as completed by a student
+      tags:
+        - Progress
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SectionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteSectionRequest'
+      responses:
+        '200':
+          description: Section marked as complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /files:
+    post:
+      summary: Create a new file record
+      description: Record a new file upload (Admin only)
+      tags:
+        - Files
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFileRequest'
+      responses:
+        '200':
+          description: File record created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FileUpload'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /files/{fileId}/status:
+    patch:
+      summary: Update file status
+      description: Update the processing status of a file (Admin only)
+      tags:
+        - Files
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FileIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFileStatusRequest'
+      responses:
+        '200':
+          description: File status updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FileUpload'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    get:
+      summary: Get file processing status
+      description: Check the processing status of an uploaded file (Admin only)
+      tags:
+        - Files
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '200':
+          description: File status retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FileUpload'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication
+
+  parameters:
+    BatchIdParam:
+      name: batchId
+      in: path
+      required: true
+      description: Unique identifier for the batch
+      schema:
+        type: string
+        format: uuid
+
+    CourseIdParam:
+      name: courseId
+      in: path
+      required: true
+      description: Unique identifier for the course
+      schema:
+        type: string
+        format: uuid
+
+    StudentIdParam:
+      name: studentId
+      in: path
+      required: true
+      description: Unique identifier for the student
+      schema:
+        type: string
+        format: uuid
+
+    TestIdParam:
+      name: testId
+      in: path
+      required: true
+      description: Unique identifier for the test
+      schema:
+        type: string
+        format: uuid
+
+    SubmissionIdParam:
+      name: submissionId
+      in: path
+      required: true
+      description: Unique identifier for the submission
+      schema:
+        type: string
+        format: uuid
+
+    SectionIdParam:
+      name: sectionId
+      in: path
+      required: true
+      description: Unique identifier for the course section
+      schema:
+        type: string
+        format: uuid
+
+    FileIdParam:
+      name: fileId
+      in: path
+      required: true
+      description: Unique identifier for the file
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    SuccessResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Invalid input data
+            details:
+              type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    Batch:
+      type: object
+      required:
+        - id
+        - batch_code
+        - name
+        - start_date
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        batch_code:
+          type: string
+          example: BATCH-2024-001
+        name:
+          type: string
+          example: Web Development Batch Q1 2024
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, archived]
+          default: active
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateBatchRequest:
+      type: object
+      required:
+        - name
+        - startDate
+      properties:
+        name:
+          type: string
+          example: Web Development Batch Q1 2024
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+
+    Course:
+      type: object
+      required:
+        - id
+        - course_code
+        - title
+        - description
+        - category
+        - template_type
+        - difficulty
+        - estimated_duration
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        course_code:
+          type: string
+          example: COURSE-001
+        title:
+          type: string
+          example: Introduction to JavaScript
+        description:
+          type: string
+        category:
+          type: string
+          example: Programming
+        template_type:
+          type: string
+          enum: [video-only, text-video, text-image, text-only]
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        estimated_duration:
+          type: string
+          example: 40 hours
+        status:
+          type: string
+          enum: [draft, published, archived]
+          default: draft
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateCourseRequest:
+      type: object
+      required:
+        - title
+        - templateType
+      properties:
+        title:
+          type: string
+          example: Introduction to JavaScript
+        description:
+          type: string
+        category:
+          type: string
+          example: Programming
+        templateType:
+          type: string
+          enum: [video-only, text-video, text-image, text-only]
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        estimatedDuration:
+          type: integer
+          description: Estimated duration in minutes
+          example: 2400
+
+    CourseSection:
+      type: object
+      required:
+        - id
+        - course_id
+        - title
+        - order_index
+      properties:
+        id:
+          type: string
+          format: uuid
+        course_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: Variables and Data Types
+        content:
+          type: string
+        video_url:
+          type: string
+          format: uri
+        image_url:
+          type: string
+          format: uri
+        order_index:
+          type: integer
+          minimum: 1
+        duration:
+          type: integer
+          description: Duration in minutes
+        created_at:
+          type: string
+          format: date-time
+
+    CreateCourseSectionRequest:
+      type: object
+      required:
+        - title
+        - orderIndex
+      properties:
+        title:
+          type: string
+          example: Variables and Data Types
+        content:
+          type: string
+        videoUrl:
+          type: string
+          format: uri
+        imageUrl:
+          type: string
+          format: uri
+        orderIndex:
+          type: integer
+          minimum: 1
+        duration:
+          type: integer
+          description: Duration in minutes
+
+    AssignCourseRequest:
+      type: object
+      required:
+        - assignmentType
+      properties:
+        assignmentType:
+          type: string
+          enum: [individual, batch]
+        studentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        batchIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        dueDate:
+          type: string
+          format: date-time
+
+    User:
+      type: object
+      required:
+        - id
+        - keycloak_id
+        - email
+        - first_name
+        - last_name
+        - role
+      properties:
+        id:
+          type: string
+          format: uuid
+        keycloak_id:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        role:
+          type: string
+          enum: [admin, student]
+        phone:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    EnrollStudentRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - email
+        - batchId
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        batchId:
+          type: string
+          format: uuid
+
+    Test:
+      type: object
+      required:
+        - id
+        - course_id
+        - title
+        - duration
+        - passing_score
+      properties:
+        id:
+          type: string
+          format: uuid
+        course_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: JavaScript Fundamentals Quiz
+        description:
+          type: string
+        duration:
+          type: integer
+          description: Test duration in minutes
+          minimum: 1
+        passing_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 70
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateTestRequest:
+      type: object
+      required:
+        - courseId
+        - title
+        - duration
+      properties:
+        courseId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: JavaScript Fundamentals Quiz
+        description:
+          type: string
+        duration:
+          type: integer
+          description: Test duration in minutes
+          minimum: 1
+        passingScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 70
+
+    SubmitTestRequest:
+      type: object
+      required:
+        - studentId
+        - answers
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        answers:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - questionId
+              - answer
+            properties:
+              questionId:
+                type: string
+                format: uuid
+              answer:
+                type: string
+
+    CompleteSectionRequest:
+      type: object
+      required:
+        - studentId
+        - courseId
+        - timeSpent
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        courseId:
+          type: string
+          format: uuid
+        timeSpent:
+          type: integer
+          description: Time spent in seconds
+          minimum: 0
+
+    FileUpload:
+      type: object
+      required:
+        - id
+        - file_name
+        - file_path
+        - file_type
+        - file_size
+        - uploaded_by
+        - processing_status
+      properties:
+        id:
+          type: string
+          format: uuid
+        file_name:
+          type: string
+        file_path:
+          type: string
+        file_type:
+          type: string
+        file_size:
+          type: integer
+          description: File size in bytes
+        uploaded_by:
+          type: string
+          format: uuid
+        processing_status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          default: pending
+        uploaded_at:
+          type: string
+          format: date-time
+        extracted_sections:
+          type: integer
+          default: 0
+        completed_at:
+          type: string
+          format: date-time
+
+    CreateFileRequest:
+      type: object
+      required:
+        - file_name
+        - file_path
+        - file_type
+        - file_size
+        - uploaded_by
+      properties:
+        file_name:
+          type: string
+        file_path:
+          type: string
+        file_type:
+          type: string
+        file_size:
+          type: integer
+        uploaded_by:
+          type: string
+          format: uuid
+
+    UpdateFileStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required
+            timestamp: '2024-12-04T14:30:00Z'
+
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: FORBIDDEN
+              message: Insufficient permissions
+            timestamp: '2024-12-04T14:30:00Z'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: NOT_FOUND
+              message: Resource not found
+            timestamp: '2024-12-04T14:30:00Z'
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: VALIDATION_ERROR
+              message: Invalid input data
+              details:
+                field: email
+                issue: Invalid email format
+            timestamp: '2024-12-04T14:30:00Z'
