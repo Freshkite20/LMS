@@ -21,7 +21,6 @@ A comprehensive training management system that enables administrators to manage
 - Access course materials (videos, documents)
 - Take tests and view results
 - Track course completion status
-- Personal dashboard with statistics
 - Real-time progress tracking
 
 ---
@@ -31,13 +30,13 @@ A comprehensive training management system that enables administrators to manage
 ### Frontend:
 - React with TypeScript
 - Vite
-- Modern UI components
+
 
 ### Backend:
 - Node.js with TypeScript
 - Express.js
 - MongoDB (Database)
-- Keycloak (Authentication & Authorization)
+- Keycloak (Authentication)
 - Cloudinary (Image/File Storage)
 
 ---
@@ -45,10 +44,10 @@ A comprehensive training management system that enables administrators to manage
 ## 📦 Installation
 
 ### Prerequisites:
-- Node.js (v16 or higher)
+- Node.js 
 - MongoDB
 - Keycloak server
-- npm or yarn
+- npm
 
 ### Backend Setup:
 ```bash
