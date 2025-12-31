@@ -40,6 +40,11 @@ export const studentService = {
                 batchId: data.batch // Map batch to batchId matches backend expectation
             };
             const response = await api.post('/students/enroll', payload);
+            console.log("ENROLLMENT RESPONSE",response);
+            console.log("ENROLLMENT RESPONSE DATA",response.data);
+            console.log("ENROLLMENT RESPONSE DATA DATA",response.data.data);
+            console.log("ENROLLMENT RESPONSE DATA DATA DATA",response.data.data.data);
+        
             if (response.data.success) {
                 return response.data.data;
             }

@@ -29,7 +29,7 @@ export class StudentsService {
         firstName: input.firstName,
         lastName: input.lastName,
         password: temporaryPassword,
-        username: input.email // Start with email as username
+        username: input.firstName + input.lastName // Start with email as username
       });
     } catch (error: any) {
       // If user already exists in Keycloak, we might want to fetch their ID

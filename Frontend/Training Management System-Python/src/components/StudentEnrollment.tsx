@@ -24,14 +24,12 @@ export function StudentEnrollment({ onBack }: StudentEnrollmentProps) {
     const fetchBatches = async () => {
       try {
         const data: any = await batchService.getAll();
+        console.log("DATA",data);
+        
         // Handle different potential response structures
         if (Array.isArray(data)) {
           setBatches(data);
-        } else if (data.batches && Array.isArray(data.batches)) {
-          setBatches(data.batches);
-        } else if (data.data && Array.isArray(data.data)) { // Support generic paginated
-          setBatches(data.data);
-        }
+        } 
       } catch (error) {
         console.error("Failed to load batches", error);
       }

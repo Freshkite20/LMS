@@ -38,8 +38,12 @@ export function AdminDashboard({ onNavigate, onViewCourse }: AdminDashboardProps
         batchService.getAll(),
         courseService.getAll(),
         studentService.getAll()
+
       ]);
       console.log('Dashboard data fetched:', { statsData, batchesData, coursesData, studentsData });
+      console.log('!!! BATCHES DATA IN DASHBOARD:', batchesData);
+      console.log('!!! COURSES DATA IN DASHBOARD:', coursesData);
+      console.log('!!! STUDENTS DATA IN DASHBOARD:', studentsData);
       setStats(statsData);
       setBatches(batchesData);
       setCourses(coursesData);
@@ -253,7 +257,7 @@ export function AdminDashboard({ onNavigate, onViewCourse }: AdminDashboardProps
               {batches.length === 0 && !loading ? (
                 <p className="text-gray-500 text-sm text-center py-4">No batches found</p>
               ) : (
-                batches.slice(0, 3).map((batch) => (
+                batches.slice(0, 5).map((batch) => (
                   <div key={batch.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex-1">
                       <p className="text-gray-900 text-sm">{batch.name}</p>

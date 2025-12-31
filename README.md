@@ -90,6 +90,10 @@ PORT=3000
 ```
 
 
+```
+
+---
+
 ## 🚀 Running the Application
 
 1. **Start MongoDB** - Ensure MongoDB is running
@@ -172,14 +176,13 @@ The application should now be running:
 ---
 
 
+---
 
 ## 📝 API Documentation
 
 API documentation is available in the `openapi.yaml` file in the backend directory. You can view it using tools like Swagger UI.
 
 ---
-
-
 
 
 ## 🤝 Contributing

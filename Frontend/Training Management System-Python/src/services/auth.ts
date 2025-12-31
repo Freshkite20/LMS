@@ -19,6 +19,9 @@ export const authService = {
         try {
             const response = await api.post('/auth/login', { username, password });
 
+            console.log(response.data.data);
+            
+
             if (response.data.success) {
                 const { token, user } = response.data.data;
                 localStorage.setItem('token', token);
@@ -52,12 +55,12 @@ export const authService = {
 
     getCurrentUser: (): User | null => {
         const userStr = localStorage.getItem('user');
-        console.log(userStr);
+    
         
         if (userStr) {
             try {
                 return JSON.parse(userStr);
-                console.log();
+                
                 
                 
             } catch (e) {

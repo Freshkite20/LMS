@@ -30,16 +30,18 @@ export class AdminRepository {
 
     const batchesWithStats = await Promise.all(
       batches.map(async (batch: any) => {
-        const studentCount = await StudentBatch.countDocuments({ batch_id: batch.id });
+        // Get students in this batch
+        const batchStudents = await StudentBatch.find({ batch_id: batch.id }).lean();
+        const studentIds = batchStudents.map((bs: any) => bs.student_id);
+        const studentCount = studentIds.length;
 
-        // Get courses assigned to this batch
-        const assignments = await CourseAssignment.find({ batch_id: batch.id }).lean();
+        // Get courses assigned to these students
+        // Since CourseAssignment doesn't have batch_id, we look for assignments for any student in the batch
+        const assignments = await CourseAssignment.find({ student_id: { $in: studentIds } }).lean();
         const courseIds = [...new Set(assignments.map((a: any) => a.course_id))];
         const courseCount = courseIds.length;
 
         // Calculate average progress for students in this batch
-        const batchStudents = await StudentBatch.find({ batch_id: batch.id }).lean();
-        const studentIds = batchStudents.map((bs: any) => bs.student_id);
 
         let avgProgress = 0;
         if (studentIds.length > 0 && courseIds.length > 0) {

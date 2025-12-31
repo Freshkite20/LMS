@@ -17,7 +17,7 @@ export const batchService = {
         try {
             console.log('Fetching batches from /admin/batches...');
             const response = await api.get('/admin/batches');
-            console.log('Batches response:', response.data);
+            console.log('Batches response:', response);
             if (response.data.success) {
                 console.log('Number of batches:', response.data.data?.length || 0);
                 return response.data.data;

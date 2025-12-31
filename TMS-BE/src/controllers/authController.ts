@@ -37,6 +37,8 @@ export class AuthController {
                 const tokenResponse = await axios.post(tokenUrl, tokenParams, {
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                 });
+                console.log(tokenResponse);
+                
                 adminToken = tokenResponse.data.access_token;
             } catch (error: any) {
                 console.error('Keycloak Admin Token Error:', error.response?.data || error.message);
@@ -160,6 +162,7 @@ export class AuthController {
                 const response = await axios.post(tokenUrl, params, {
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 });
+                console.log("res",response)
                 tokenResponse = response.data;
                 console.log(`[Auth] Token received in ${Date.now() - tokenStart}ms`);
             } catch (error: any) {
@@ -196,6 +199,8 @@ export class AuthController {
             // 3. Sync/Get User from Local DB
             const dbStart = Date.now();
             let user = await UsersRepository.getByEmail(email);
+            console.log("user:",user);
+            
 
             if (!user) {
                 // Auto-create user if missing (JIT provisioning)

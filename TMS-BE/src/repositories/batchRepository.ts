@@ -35,6 +35,8 @@ export class BatchesRepository {
       .limit(limit)
       .lean();
 
+      console.log("ROWS",rows)
+
     // Keep placeholder stats as before
     const rowsWithStats = rows.map((b: any) => ({
       ...b,
