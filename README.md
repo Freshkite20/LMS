@@ -73,21 +73,33 @@ npm run dev
 
 ---
 
-## 🔐 Environment Variables
+### 🔐 Environment Variables
 
 ### Backend (.env):
 Create a `.env` file in the `TMS-BE` directory:
 ```env
-MONGODB_URI=your_mongodb_connection_string
-KEYCLOAK_URL=your_keycloak_url
-KEYCLOAK_REALM=your_realm
-KEYCLOAK_CLIENT_ID=your_client_id
-KEYCLOAK_CLIENT_SECRET=your_client_secret
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+# Server Configuration
 PORT=3000
-```
+NODE_ENV=development
+
+# Database Configuration
+MONGODB_URI= mongodb+srv://username:password@cluster0.oz3xgkz.mongodb.net/lms_project?retryWrites=true&w=majority&appName=Cluster0
+MONGODB_DB_NAME=mongo
+
+# Keycloak Configuration
+KEYCLOAK_BASE_URL=http://localhost:8080
+KEYCLOAK_REALM=lms-realm
+KEYCLOAK_CLIENT_ID=tms-backend
+KEYCLOAK_CLIENT_SECRET=<SECRET>
+
+# File Storage
+STORAGE_PROVIDER=local
+UPLOAD_DIR=uploads
+
+
+
+
+
 
 
 ```
@@ -178,11 +190,9 @@ The application should now be running:
 
 ---
 
-## 📝 API Documentation
 
-API documentation is available in the `openapi.yaml` file in the backend directory. You can view it using tools like Swagger UI.
 
----
+
 
 
 ## 🤝 Contributing

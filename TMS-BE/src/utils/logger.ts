@@ -1,39 +1,21 @@
-import pino from 'pino';
-import { config } from '../config/env.js';
-
 /**
- * Centralized Logger using Pino
- * Provides structured logging across the application
+ * Simple Logger wrapper using console
+ * Maintains the same interface as the previous Pino logger
  */
 
-const isDevelopment = config.NODE_ENV === 'development';
-
-export const logger = pino({
-    level: config.LOG_LEVEL || 'info',
-    formatters: {
-        level: (label) => {
-            return { level: label.toUpperCase() };
-        },
-    },
-    timestamp: pino.stdTimeFunctions.isoTime,
-});
-
-/**
- * Create a child logger with additional context
- */
-export const createLogger = (context: Record<string, any>) => {
-    return logger.child(context);
+export const logger = {
+    info: (...args: any[]) => console.log('[INFO]', ...args),
+    error: (...args: any[]) => console.error('[ERROR]', ...args),
+    warn: (...args: any[]) => console.warn('[WARN]', ...args),
+    debug: (...args: any[]) => console.debug('[DEBUG]', ...args),
+    trace: (...args: any[]) => console.trace('[TRACE]', ...args),
+    fatal: (...args: any[]) => console.error('[FATAL]', ...args),
+    child: () => logger,
 };
 
-/**
- * Log levels:
- * - trace: Very detailed information, typically only for diagnosing problems
- * - debug: Detailed information for debugging
- * - info: General informational messages
- * - warn: Warning messages for potentially harmful situations
- * - error: Error messages for error events
- * - fatal: Critical errors that cause application termination
- */
+export const createLogger = (context: Record<string, any>) => {
+    console.log('[LOGGER CREATED]', context);
+    return logger;
+};
 
 export default logger;
-

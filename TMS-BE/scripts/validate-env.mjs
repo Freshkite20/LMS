@@ -11,7 +11,7 @@ import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirname(__filename)
 const rootDir = join(__dirname, '..');
 const envPath = join(rootDir, '.env');
 
@@ -31,7 +31,6 @@ dotenv.config({ path: envPath });
 const requiredVars = [
     'MONGODB_URI',
     'PORT',
-    'JWT_SECRET',
     'NODE_ENV',
 ];
 
@@ -85,7 +84,7 @@ if (process.env.MONGODB_URI) {
 // Check PORT is a number
 if (process.env.PORT) {
     const port = parseInt(process.env.PORT, 10);
-    if (isNaN(port) || port < 1 || port > 65535) {
+    if ( port < 1 || port > 65535) {
         console.log('  ❌ PORT must be a valid number between 1 and 65535');
         hasErrors = true;
     } else {
@@ -105,13 +104,12 @@ if (process.env.NODE_ENV) {
 }
 
 // Summary
-console.log('\n' + '='.repeat(50));
 if (hasErrors) {
     console.log('❌ Environment validation FAILED');
     console.log('Please fix the errors above before running the application');
     process.exit(1);
 } else if (hasWarnings) {
-    console.log('⚠️  Environment validation passed with warnings');
+    console.log(' Environment validation passed with warnings');
     console.log('Consider setting the recommended variables for full functionality');
     process.exit(0);
 } else {

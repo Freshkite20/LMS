@@ -26,7 +26,7 @@ export class AuthController {
             const { baseUrl, realm, clientId, clientSecret } = config.keycloak;
 
             // 1. Get Admin Token (Service Account)
-            const tokenUrl = `${baseUrl}/realms/${realm}/protocol/openid-connect/token`;
+            const tokenUrl = `${baseUrl}/realms/${realm}/protocol/openid-connect/token`;//keycloak token endpoint
             const tokenParams = new URLSearchParams();
             tokenParams.append('grant_type', 'client_credentials');
             tokenParams.append('client_id', clientId);
@@ -145,7 +145,7 @@ export class AuthController {
             const { baseUrl, realm, clientId, clientSecret } = config.keycloak;
 
             // 1. Authenticate with Keycloak
-            const tokenUrl = `${baseUrl}/realms/${realm}/protocol/openid-connect/token`;
+            const tokenUrl = `${baseUrl}/realms/${realm}/protocol/openid-connect/token`;// keycloak endpoint URL where we ask keycloak for a token
             const params = new URLSearchParams();
             params.append('grant_type', 'password');
             params.append('client_id', clientId);
@@ -178,6 +178,7 @@ export class AuthController {
             if (!decodedToken) {
                 throw createError(500, 'Invalid token received from provider');
             }
+            console.log("decodedToken",decodedToken)
 
             let role: 'student' | 'admin' = 'student';
 

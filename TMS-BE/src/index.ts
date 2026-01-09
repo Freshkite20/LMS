@@ -1,10 +1,9 @@
 import app from './app.js';
-import { loadEnv } from './config/env.js';
+
 import { connectDB } from './db/mongoose.js';
+import { config } from './config/env.js';
 
-loadEnv();
 
-const PORT = 3000; // Force 3001 to resolve port conflict
 
 // Test database connection
 async function testDatabaseConnection() {
@@ -21,8 +20,8 @@ async function testDatabaseConnection() {
 
 // Test DB connection before starting server
 testDatabaseConnection().then(() => {
-  app.listen(PORT, () => {
+  app.listen(config.port, () => {
     // eslint-disable-next-line no-console
-    console.log(`🚀 TMS API listening on port ${PORT}`);
+    console.log(`🚀 TMS API listening on port ${config.port}`);
   });
 });
